@@ -1,4 +1,4 @@
-Implementation of an electronic circuit simulator program
+# Implementation of an electronic circuit simulator program
 
 We can have in the netlist:
 -----------------------------------------------------
