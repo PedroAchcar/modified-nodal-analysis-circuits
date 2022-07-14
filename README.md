@@ -1,4 +1,4 @@
-# nodal-analysis-circuits
+Implementation of an electronic circuit simulator program
 
 We can have in the netlist:
 -----------------------------------------------------
