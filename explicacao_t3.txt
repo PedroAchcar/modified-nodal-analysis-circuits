@@ -1,0 +1,73 @@
+    Primeira coisa que nosso programa tem que fazer é ler o arquivo que tem o nome que o
+usuário inserir, após a leitura do arquivo temos o método readlines que coloca todas as
+linhas em uma lista de strings em que cada elemento é uma linha do arquivo. Como vamos usar
+o módulo numpy para fazer os cálculos, ele ignora o '\n' para realizar os cálculos portanto,
+não temos que nos preocupar com isso, porém temos que fazer uma limpa nas linhas vazias e
+nos comentários, que na netlist iniciam-se com o caractére '*'.
+    Partimos, agora, para as matrizes Gn (nxn) e vetor In (nx1), em que n é o número de nós
+do circuito. Esse valor pode ser definido procurando na netlist o nó de maior valor, ou seja,
+sabendo que, como exemplo, uma das linhas de uma netlist é 'R1 0 5 2', temos que o resistor R1
+está conectado do nó 0 ao nó 5 com resistência de 2 Ohms, ou seja, temos 5 nós no circuito (obs,
+o número de nós está desconsiderando o nó terra, ou seja, no total temos n+1 nós no circuito).
+Com o número de nós em mãos, podemos então criar a matriz Gn e o vetor In, inicialmente
+compostos de zeros.
+    Para construir nosso algoritmo para resolver o sistema Gn.e=In, precisamos adicionar os
+valores de resistências e fontes dependentes em Gn e fontes independentes em In, para isso
+usamos as estampas, ou seja, um padrão para cada elemento do circuito. Assim os resistores,
+capacitores, indutores, fontes alternadas, fontes (in)dependentes e transformadores têm um
+tipo de estampa para serem adicionados nas matrizes, ou seja, podemos dizer que seriam
+estampadas nas matrizes.
+    Após definirmos as estampas, temos que alterar a matriz Gn ou o vetor In de forma a
+completar o sistema Gn.e=In, como visto no exemplo 'R1 0 5 2', o primeiro item é o resistor
+R1, para sabermos que é um resistor usamos o primeiro caracter da string 'R1', ou seja, o R,
+e em Python podemos dizer que 'R' é o elemento 0 da string e '1' é o elemento 1 da string.
+Podemos usar isso para saber se é uma resistência (R), um capacitor (C), um indutor (L),
+uma fonte de corrente dependente (G) um transformador (K), um amplificador de tensão (E) ou de
+corrente (F) ou um transresistor (H).
+    Por fim, depois de escolhermos qual estampa usar e da função alterar nossa matriz Gn ou o
+vetor In, podemos usar o módulo numpy para resolver o sistema Gn.e=In. Dentro do numpy temos o
+linalg.solve, que como o próprio nome diz, resolve um sistema de equações lineares com as matrizes,
+no nosso caso a função será chamada como np.linalg.solve(Gn, In) retornando a solução do nosso
+sistema.
+    Para testarmos o programa, simplesmente rodamos ele tendo o arquivo .txt com a netlist
+desejada no mesmo diretório. Quando chamamos a função main(txt), temos no argumento da funcao o
+nome do arquivo de texto que contém a netlist, por padrão o nome é 'netlist.txt' (sem as aspas).
+    Usei a primeira netlist dada no arquivo de testes para o trabalho, alterada para testes.
+Alterei a netlist para conter linhas vazias e comentários para testar o polimento do programa.
+
+netlist.txt:
+-------------------------------------
+*teste inicial
+R1 3 0 2
+R2 3 4 2
+
+V1 4 0 DC 10
+*teste meio
+R3 4 1 3
+
+R4 1 0 4
+R5 1 2 4
+
+R6 2 0 5
+E1 3 2 1 0 5
+*teste final
+G1 2 0 4 1 3
+
+-------------------------------------
+
+    Para testar com essa netlist, somente rodei a função main e, quando solicitado o nome do arquivo,
+coloquei netlist.txt. Após todos os cálculos, o programa retornou um vetor coluna com seis linhas,
+correspondentes a e1, e2, e3, e4, jV1 e jE1:
+
+Saída:
+-------------------------------------
+Vetor solução:
+e1 = (-0.861+0j)
+e2 = (-16.203+0j)
+e3 = (-20.506+0j)
+e4 = (10+0j)
+jV1 = (-18.873+0j)
+jE1 = (25.506+0j)
+-------------------------------------
+
+    Assim, temos a solução do nosso sistema.
