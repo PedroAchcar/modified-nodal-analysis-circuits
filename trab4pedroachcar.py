@@ -92,14 +92,17 @@ def estampaResistor(Gn: np.array, A: int, B: int, R: float):
     Gn[B, B] += 1/R
 
 
-def estampaCapacitor(Gn: np.array, In: np.array, A: int, B: int, C: float, vc0: float) -> None:
-    '''Altera Gn usando a estampa de um capacitor'''
-    Gn[A, A] += w * C * 1j
-    Gn[A, B] -= w * C * 1j
-    Gn[B, A] -= w * C * 1j
-    Gn[B, B] += w * C * 1j
+# def estampaCapacitor(Gn: np.array, In: np.array, A: int, B: int, C: float, vc0: float) -> None:
+#     '''Altera Gn usando a estampa de um capacitor'''
+#     Gn[A, A] += w * C * 1j
+#     Gn[A, B] -= w * C * 1j
+#     Gn[B, A] -= w * C * 1j
+#     Gn[B, B] += w * C * 1j
 
-    estampaFonteCorrenteIndependente(In, A, B, -C*vc0)
+#     estampaFonteCorrenteIndependente(In, A, B, -C*vc0)
+
+def estampaCapacitorTemporal(Gn: np.array, In: np.array, A: int, B: int, capacitancia: float, vt0: float, passo: float) -> None:
+    pass
 
 
 def estampaIndutor(Gn: np.array, In: np.array, A: int, B: int, L: float, il0: float) -> None:
@@ -155,7 +158,13 @@ def estampaFonteTensao(Gn: np.array, In: np.array, A: int, B: int, x: int, V: fl
 
 def estampaFonteTensaoAlternada(Gn: np.array, In: np.array, A: int, B: int, x: int, amplitude: float, frequencia: float, fase: float):
     '''Altera Gn usando a estampa de uma fonte de tensao alternada'''
-    pass
+    global w
+    w = frequencia * 2 * pi
+    Gn[A, x] += 1
+    Gn[B, x] -= 1
+    Gn[x, A] -= 1
+    Gn[x, B] += 1
+    In[x] -= conversorRetangular(amplitude, fase)
 
 
 def estampaAmpTensao(Gn: np.array, A: int, B: int, C: int, D: int, x: int, ganhoA: float):
@@ -181,8 +190,7 @@ def estampaTransresistor(Gn: np.array, A: int, B: int, C: int, D: int, x: int, y
     Gn[y, x] += Rm
 
 
-def estampaTransformador(Gn: np.array, In: np.array, A: int, B: int, C: int, D: int, L1: float, L2: float,
-                         M: float, il10: float, il20: float) -> None:
+def estampaTransformador(Gn: np.array, A: int, B: int, C: int, D: int, L1: float, L2: float, M: float) -> None:
     '''Altera Gn usando a estampa de um transformador'''
     gama11 = L2 / (L1*L2 - M**2)
     gama12 = -M / (L1*L2 - M**2)
@@ -207,20 +215,45 @@ def estampaTransformador(Gn: np.array, In: np.array, A: int, B: int, C: int, D: 
     Gn[D, C] -= gama22 / (w*1j)
     Gn[D, D] += gama22 / (w*1j)
 
-    estampaFonteCorrenteIndependente(In, A, B, il10/(w * 1j))
-    estampaFonteCorrenteIndependente(In, C, D, il20/(w * 1j))
+
+def estampaDiodo(Gn: np.array, In: np.array, A: int, B: int, Is: float, nVt: float, vn, epsilon: float, entradas: list) -> None:
+    matrizG = np.zeros(np.shape(Gn))
+    vetorI = np.zeros(np.shape(In))
+    eA0 = entradas[A+1]
+    eB0 = entradas[B+1]
+    k = 0
+
+    if A == 0:
+        eA0 = 0
+    if B == 0:
+        eB0 = 0
+
+    # while k < 100 or () > epsilon:
+
+    exp = np.exp(vn/nVt)
+    G0 = Is * exp / nVt
+    I0 = Is * (exp - 1) - G0 * vn
+
+    estampaResistor(matrizG, A, B, 1/G0)
+    estampaFonteCorrenteIndependente(vetorI, A, B, I0)
 
 
-def estampador(netlist: list, Gn: np.array, In: np.array, variaveis: list):
+def estampador(netlist: list, Gn: np.array, In: np.array, variaveis: list, passo: float, epsilon: float, entradas: list, num_pontos: int, resultados: np.array):
     '''Aplica a estampa correspondente na matriz Gn ou no vetor In
         Saída->None or string'''
+    for atual in range(1, num_pontos):
+        back = 0
+        for k in range(100):
+            matrizG =
     for linha in netlist:
         item = linha.split(' ')
         if item[0][0] == 'R':
             estampaResistor(Gn, int(item[1]), int(item[2]), float(item[3]))
         elif item[0][0] == 'C':
-            estampaCapacitor(Gn, In, int(item[1]), int(item[2]),
-                             float(item[3]), float(item[4]))
+            # estampaCapacitor(Gn, In, int(item[1]), int(item[2]),
+            #  float(item[3]), float(item[4]))
+            estampaCapacitorTemporal(Gn, In, int(item[1]), int(item[2]),
+                                     float(item[3]), float(item[4]), vt0, passo)
         elif item[0][0] == 'L':
             estampaIndutor(Gn, In, int(item[1]), int(item[2]),
                            float(item[3]), float(item[4]))
@@ -228,9 +261,9 @@ def estampador(netlist: list, Gn: np.array, In: np.array, variaveis: list):
             estampaFonteCorrenteDependente(Gn, int(item[1]), int(item[2]),
                                            int(item[3]), int(item[4]), float(item[5]))
         elif item[0][0] == 'K':
-            estampaTransformador(Gn, In, int(item[1]), int(item[2]), int(item[3]),
+            estampaTransformador(Gn, int(item[1]), int(item[2]), int(item[3]),
                                  int(item[4]), float(item[5]), float(item[6]),
-                                 float(item[7]), float(item[8]), float(item[9]))
+                                 float(item[7]))
         elif item[0][0] == 'E':
             estampaAmpTensao(Gn, int(item[1]), int(item[2]), int(item[3]),
                              int(item[4]), variaveis.index('j' + item[0]),
@@ -259,19 +292,29 @@ def estampador(netlist: list, Gn: np.array, In: np.array, variaveis: list):
                 estampaFonteTensaoAlternada(In, int(item[1]), int(item[2]),
                                             variaveis.index('j' + item[0]),
                                             float(item[5]), float(item[6]), float(item[7]))
+        elif item[0][0] == 'D':
+            vn = ''
+            estampaDiodo(Gn, In, int(item[1]), int(item[2]),
+                         float(item[3]), float(item[4]), vn, epsilon, entradas)
         else:
             return 'Netlist mal formulada.'
 
 
-def main(txt='netlist.txt') -> None:
+def main(txt, tempo, passo, epsilon, entradas, saidas) -> None:
     '''Controla o programa chamando as funções devidas na ordem correspondente'''
+    num_pontos = int(tempo/passo)
+
     with open(txt, 'r') as txt:
         netlist = txt.readlines()
     netlist = limpaCodigo(netlist)
     maiorNo, correntes, variaveis = numeroNosCorrentes(netlist)
     Gn = gerarMatrizGn(maiorNo + correntes)
     In = gerarVetorIn(maiorNo + correntes)
-    estampador(netlist, Gn, In, variaveis)
+    resultados = np.zeros((num_pontos, maiorNo+correntes))
+    aux = [maiorNo, correntes, variaveis, tempo, passo, epsilon, num_pontos]
+    estampador(netlist, Gn, In, variaveis, passo, epsilon,
+               entradas, saidas, num_pontos, resultados)
+    #'''COLOCANDO COISAS NA LISTA AUX'''#
 
     Gn = Gn[1:, 1:]
     In = In[1:]
@@ -286,14 +329,13 @@ def main(txt='netlist.txt') -> None:
 
 
 if __name__ == '__main__':
-    print(main())
+    print(main('netlist.txt'))
 
 
 '''
-Faltando:
+TODO:
 D
-I PULSE
 V SIN
+I PULSE
 V PULSE
-Testar condicoes iniciais capacitor, indutor, transformador
 '''
